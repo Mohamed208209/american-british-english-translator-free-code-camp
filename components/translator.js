@@ -15,6 +15,8 @@ const britishToAmericanTitles = fullSwap(americanToBritishTitles);
 
 const timesRegExBritish = new RegExp("(?<=\\d)[.](?=\\d{2})");
 const timesRegExAmerican = new RegExp("(?<=\\d)[:](?=\\d{2})");
+const titlesRegExAmer = new RegExp("mr.|ms.|mrs.|dr.|mx.|prof.", "gi");
+const titlesRegExBrit = new RegExp("mr|ms|mrs|dr|mx|prof", "gi");
 
 class Translator {
 
@@ -39,7 +41,7 @@ class Translator {
         // Break down sentence into array of words
         const arraySpaces = sentence.split(/[ ]/);
 
-        const periodsRegEx = new RegExp('(?<!mr|ms|mrs|dr|mx|prof)([.]|[;]|[,]|[?])', 'gi');
+        const periodsRegEx = new RegExp('((?<!mr|ms|mrs|dr|mx|prof|\\d{1,2})[.])|[;]|[,]|[?]', 'gi');
 
         const arrayCommas = arraySpaces.reduce((prev, current) => {
             if (current.match(periodsRegEx)) return prev.concat(current.substring(0, current.length - 1)).concat(current.substring(current.length - 1));
@@ -73,13 +75,12 @@ class Translator {
     }
 
     capitalizeTitle(string) {
-        const titlesRegEx = new RegExp("mr|ms|mrs|dr|mx|prof", "g");
         let title, newString;
         
-        if (string.match(titlesRegEx)) {
-            title = string.match(titlesRegEx)[0];
+        if (string.match(titlesRegExAmer)) {
+            title = string.match(titlesRegExAmer)[0];
             title = title.substring(0, 1).toUpperCase() + title.substring(1);
-            newString = string.replace(titlesRegEx, title);
+            newString = string.replace(titlesRegExAmer, title);
         } else {
             newString = string;
         }
@@ -120,8 +121,8 @@ class Translator {
 
         // Check to see if the sentence is written in American or British English
         // if localeIsAmerican is not provided 
-        isAmerican = localeIsAmerican ? true : this.checkAmerican(arrayOfWords);
-        isBritish = localeIsAmerican ? false : this.checkBritish(arrayOfWords);
+        isAmerican = localeIsAmerican === true ? true : this.checkAmerican(arrayOfWords);
+        isBritish = localeIsAmerican === false ? false : this.checkBritish(arrayOfWords);
         //console.log("Is American? ", isAmerican);
         //console.log("Is British? ", isBritish);
 
@@ -141,8 +142,8 @@ class Translator {
             arrayWithReplacements = this.replaceWords(arrayWithReplacements, britishToAmericanTitles);
         }
 
+        
         //console.log("array after replacements: ", arrayWithReplacements);
-
         // Link the words in the array back together
         let finalString = this.joinArray(arrayWithReplacements);
         //console.log(finalString);
@@ -163,9 +164,10 @@ class Translator {
     highlight(sentence, isAmerican = null) {
         const arrayParsedBrit = this.parseOutWords(sentence, americanOnly);
         const arrayParsedAmer = this.parseOutWords(sentence, britishOnly);
-
-        const arrayParsed = arrayParsedAmer.length > arrayParsedBrit.length ? arrayParsedBrit : arrayParsedAmer;
         
+        const arrayParsed = arrayParsedAmer.length > arrayParsedBrit.length ? arrayParsedBrit : arrayParsedAmer;
+        //console.log(arrayParsed);
+
         if (!isAmerican) {
             isAmerican = this.checkAmerican(arrayParsed);
         }
@@ -174,16 +176,16 @@ class Translator {
 
         if (isAmerican) {
             finalArray = arrayParsed.reduce((prev, current) => {
-                if (this.wordIsAmerican(current)) {
-                    return prev.concat(`<span class='highlight'>${current}</span>`)
+                if (this.wordIsAmerican(current) || current.match(timesRegExAmerican) || current.match(titlesRegExAmer)) {
+                    return prev.concat(`<span class="highlight">${current}</span>`)
                 } else {
                     return prev.concat(current);
                 }
             }, [])
         } else {
             finalArray = arrayParsed.reduce((prev, current) => {
-                if (this.wordIsBritish(current)) {
-                    return prev.concat(`<span class='highlight'>${current}</span>`)
+                if (this.wordIsBritish(current) || current.match(timesRegExBritish) || current.match(titlesRegExBrit)) {
+                    return prev.concat(`<span class="highlight">${current}</span>`)
                 } else {
                     return prev.concat(current);
                 }
